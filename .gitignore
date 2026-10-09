@@ -224,3 +224,4 @@ data/
 runs/
 *.pt
 *.bin
+.DS_Store
