@@ -21,3 +21,12 @@
   - Partly occluded cars (occluded=2, n=27) have median signed error -6.67 m and make up the worst outliers (e.g. gt 66.4 m, est 22.9 m). Hypothesis: the 2D box contains LiDAR points from the occluding nearer object, so the median picks the occluder's depth. Not yet checked on images.
   - Mean error is much worse than median error, so a few outliers dominate; median/percentile statistics are more robust here.
 - Next: Setting B once best.pt is back from Kaggle; pick the Phase 6 improvement from these observations.
+
+## 2026-10-09 — Outlier check for Setting A (looking at the 3 worst errors)
+- Change vs. baseline: none; visual inspection only (scripts/visualize_outliers.py, results/figures/outlier_*.png)
+- Observation: in all 3 worst cases (frames 000009, 000032, 000049; all occluded=2) the box contains points from a nearer object in front of the target, and the median lands on the nearer object.
+  - 000009: 16 points, 12 on the near car (~23 m), 4 on the true car (66.4 m); estimate 22.9 m.
+  - 000049: 77 points, most on a car at ~20 m, about 14 on the true car (~34 m); estimate 20.0 m.
+  - 000032 (Van): 691 points over many depths; the single biggest peak IS the true distance (39 m), but nearer points are more numerous overall, so the median is 21.9 m.
+- Implication: "pick the nearest cluster" would make these worse, and "pick the largest cluster" works in only one of three. A depth-only rule cannot separate target from occluder; a candidate fix is to drop points that fall inside another, nearer detection's box. Only 3 cases inspected so far.
+- Next: Setting B with YOLO boxes; choose the Phase 6 improvement after seeing it.
