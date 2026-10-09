@@ -1,0 +1,7 @@
+path: /kaggle/working/kitti_yolo   # override locally with: path=data/kitti_yolo_sample
+train: images/train
+val: images/val
+names:
+  0: Car
+  1: Pedestrian
+  2: Cyclist
