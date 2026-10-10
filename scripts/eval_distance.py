@@ -67,6 +67,8 @@ def main() -> None:
     else:
         frames = sorted(p.stem for p in (root / "label_2").glob("*.txt"))
 
+    if not frames:
+        raise SystemExit("No frames to evaluate (empty split file or no labels). Check --kitti_root / --split_file.")
     rows = []
     for fid in tqdm(frames, desc="frames"):
         calib = read_calib(root / "calib" / f"{fid}.txt")

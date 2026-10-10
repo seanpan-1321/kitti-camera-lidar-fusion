@@ -12,7 +12,10 @@ def main() -> None:
     parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()
 
-    ids = sorted(p.stem for p in (Path(args.kitti_root) / "label_2").glob("*.txt"))
+    label_dir = Path(args.kitti_root) / "label_2"
+    ids = sorted(p.stem for p in label_dir.glob("*.txt"))
+    if not ids:
+        raise SystemExit(f"No label files found in {label_dir}. Check --kitti_root (ls the folder).")
     random.Random(args.seed).shuffle(ids)
     n_val = round(len(ids) * args.val_ratio)
     val, train = sorted(ids[:n_val]), sorted(ids[n_val:])
