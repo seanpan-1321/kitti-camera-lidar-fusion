@@ -30,3 +30,15 @@
   - 000032 (Van): 691 points over many depths; the single biggest peak IS the true distance (39 m), but nearer points are more numerous overall, so the median is 21.9 m.
 - Implication: "pick the nearest cluster" would make these worse, and "pick the largest cluster" works in only one of three. A depth-only rule cannot separate target from occluder; a candidate fix is to drop points that fall inside another, nearer detection's box. Only 3 cases inspected so far.
 - Next: Setting B with YOLO boxes; choose the Phase 6 improvement after seeing it.
+
+## 2026-10-11 — Distance estimation v1, Setting A (oracle boxes), full val split
+- Change vs. baseline: none; same method as the 50-frame run, now on all 1496 val frames (7582 objects: 6385 Car, 884 Pedestrian, 313 Cyclist). Counts match the YOLO val instance counts.
+- Settings: GT 2D boxes, GT distance = label z, median depth of LiDAR points in box, min 5 points. Run on Kaggle (CPU) via notebooks/kaggle_eval.ipynb. Table: results/metrics/distance_eval_A_oracle_fullval.md
+- Result (all classes): MAE 2.81 m, median abs error 1.39 m, mean signed error -1.85 m, no-estimate 0.47%. The 50-frame sample gave 2.64 / 1.42 / -1.79, so it was a fair preview.
+- By range, all classes (MAE / median abs err): 0-20 m 1.60 / 0.91; 20-40 m 2.94 / 1.51; 40+ m 4.93 / 1.75.
+- Observation:
+  - Median abs error barely grows with range (0.91 -> 1.75 m), but MAE does (1.60 -> 4.93 m): at long range a minority of objects is very wrong. Car 40+ m: mean signed -4.54 m vs median -1.74 m.
+  - Cars are biased short (median -1.33 m overall), in line with the near-surface hypothesis. Cyclists are biased LONG (mean +1.57 m, median +0.71 m; 0-20 m: +2.20 / +1.81 m), the opposite sign. Hypothesis (untested): cyclists are thin, so the box contains many background points behind them.
+  - Pedestrians are nearly unbiased (median +0.10 m) with median abs error 0.20 m.
+  - Occlusion outliers seen on the 50-frame sample (3 worst cases) probably explain the long-range tail, but this was not checked on the full val set.
+- Next: Setting B (YOLO boxes); check the long-range tail by occlusion level on the full val objects CSV (it is in the Kaggle output, not downloaded yet).
