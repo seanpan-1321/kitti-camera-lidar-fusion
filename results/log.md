@@ -42,3 +42,15 @@
   - Pedestrians are nearly unbiased (median +0.10 m) with median abs error 0.20 m.
   - Occlusion outliers seen on the 50-frame sample (3 worst cases) probably explain the long-range tail, but this was not checked on the full val set.
 - Next: Setting B (YOLO boxes); check the long-range tail by occlusion level on the full val objects CSV (it is in the Kaggle output, not downloaded yet).
+
+## 2026-10-11 — Setting B (YOLO boxes, end-to-end) vs Setting A, 200 val frames
+- Change vs. baseline: boxes come from YOLO (weights/best.pt, conf=0.25, imgsz=640) matched to GT with IoU>=0.5 and same class (greedy, by confidence), instead of the labeled boxes. Objects with no matching YOLO box are counted as "missed".
+- Settings: 200 random val frames (data/kitti_val_sample, seed 0), 978 GT objects (830 Car, 112 Pedestrian, 36 Cyclist). Tables: results/metrics/distance_eval_{A_oracle,B_yolo}_valsample.md. NOTE: baseline per-class mAP table not logged yet (waiting for the Kaggle cell 5 output); results.csv last epoch gives mAP50=0.845, mAP50-95=0.574.
+- Result:
+  - A (all 978 objects): MAE 2.89 m, median abs err 1.43 m, mean signed -1.97 m.
+  - B: 10.5% of GT objects missed (Car 7.2%, Pedestrian 30.4%, Cyclist 25.0%); on the rest MAE 2.54 m, median abs err 1.40 m, mean signed -1.69 m.
+- Observation:
+  - B's MAE looks lower than A's (2.54 vs 2.89) but this is survivorship bias: the 100 missed objects are the hard ones (A MAE on them: 6.11 m). On the same 874 objects that B matched, A gives MAE 2.52 m and B gives 2.54 m. So YOLO's boxes are as good as the labeled boxes for distance; the extra end-to-end cost shows up as missed objects, not as worse distances.
+  - Missed rate by occlusion level: 0 -> 4.6%, 1 -> 9.6%, 2 -> 23.6%, 3 -> 12.5%. By box height: <25 px 13.8%, 25-40 px 11.3%, 40-60 px 11.3%, >60 px 8.6% (size matters less than occlusion).
+  - Pedestrians are missed most often (30%) at conf=0.25; a lower confidence threshold would trade fewer misses for more false positives (not measured yet; false positives are not counted in this table).
+- Next: check how the missed rate changes with conf; Phase 3 failure figure; choose the Phase 6 improvement (candidate: ignore points that fall inside another, nearer detection's box, aimed at the long-range / occluded error tail).
