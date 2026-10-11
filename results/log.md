@@ -72,3 +72,13 @@
   - This corrects towards KITTI's label convention (box center). The nearest-surface distance may be the more useful quantity for driving; state this in the README.
   - Caveat: single run, one dev/test split, the offset was fit on 158 cars. Not yet repeated on the full val set.
 - Next: try a distance-dependent offset (one more variable, separate experiment) or leave as future work; run the final numbers on the full 1496 val frames on Kaggle for the README table.
+
+## 2026-10-11 — Phase 3: detection failure analysis (YOLO baseline, 200 val frames)
+- Change vs. baseline: none; analysis only (scripts/analyze_detection.py -> results/metrics/detection_analysis.md, results/figures/failures.png). conf>=0.25, IoU>=0.5 for a match.
+- Result: 978 GT objects; 875 found, 101 missed, 2 found with the wrong class. 159 false alarms (125 predicted Car, 26 Pedestrian, 8 Cyclist), about 0.8 per frame. Recall: Car 92.8%, Cyclist 75.0%, Pedestrian 69.6%.
+- Observations:
+  1. Hidden objects are missed most: recall by KITTI occlusion level is 95.4% (0, fully visible), 90.4% (1), 76.4% (2), 87.5% (3, tiny n=32). The failure grid shows missed cars tucked between parked cars.
+  2. Pedestrians are the weak class: 32 of 112 were not detected at all. Examples show people in deep shadow and people half hidden behind a car. Pedestrian vs Cyclist confusion is rare (2 of 148 people); both examples shown are people walking next to a bicycle (the label says Pedestrian, YOLO says Cyclist).
+  3. Size matters less than occlusion: recall is 86.2% for boxes under 25 px and 91.4% above 60 px. About 8 percentage points of spread, versus 19 points across occlusion levels.
+  - False alarms: in 4 examples shown, several look like real parked cars or pedestrians that carry no label (hypothesis: part of the "false alarms" are unlabeled real objects, so precision is understated; not verified over all 159).
+- Next: full-val numbers on Kaggle; decide on follow-ups (distance-dependent offset, lower-confidence threshold study).
