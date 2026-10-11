@@ -54,3 +54,21 @@
   - Missed rate by occlusion level: 0 -> 4.6%, 1 -> 9.6%, 2 -> 23.6%, 3 -> 12.5%. By box height: <25 px 13.8%, 25-40 px 11.3%, 40-60 px 11.3%, >60 px 8.6% (size matters less than occlusion).
   - Pedestrians are missed most often (30%) at conf=0.25; a lower confidence threshold would trade fewer misses for more false positives (not measured yet; false positives are not counted in this table).
 - Next: check how the missed rate changes with conf; Phase 3 failure figure; choose the Phase 6 improvement (candidate: ignore points that fall inside another, nearer detection's box, aimed at the long-range / occluded error tail).
+
+## 2026-10-11 — Phase 6: car near-surface bias correction (constant offset)
+- Change vs. baseline: add a constant offset (m) to every Car distance estimate (--car_offset in scripts/eval_distance.py). Nothing else changes (same YOLO boxes, same median, same matching).
+- Settings: Setting B (YOLO best.pt, conf 0.25, IoU 0.5) on the 200 val frames (data/kitti_val_sample). Offsets were fitted on the 50-frame dev sample minus the 1 frame that is also in the test frames (49 frames, 158 cars), so the test frames did not influence them:
+  - physics: half of the mean car length, 3.92 / 2 = +1.96 m
+  - data: minus the median signed error of the dev cars, +1.42 m
+- Result (Car, 769 matched objects with an estimate; files: results/metrics/distance_eval_B_{baseline,offset142_data,offset196_physics}_valsample.*):
+  - baseline +0.00 m: MAE 2.70, median abs err 1.44, median signed -1.33, within 1 m 30.6%, within 2 m 75.0%, within 5 m 86.4%
+  - data +1.42 m: MAE 2.14, median abs err 0.67, median signed +0.09, within 1 m 61.9%, within 2 m 77.2%, within 5 m 88.6%
+  - physics +1.96 m: MAE 2.32, median abs err 1.08, median signed +0.63, within 1 m 47.9%, within 2 m 73.9%, within 5 m 88.2%
+  - All classes with the data offset: MAE 2.54 -> 2.05, median abs err 1.40 -> 0.65.
+- Observation:
+  - The data-fitted offset roughly halves the typical error (median abs 1.44 -> 0.67 m) and doubles the share of cars within 1 m (31% -> 62%). The physics offset (half length) overshoots: LiDAR points do not all sit on the rear face (side/roof points pull the median deeper), so the bias (~1.4 m) is smaller than half the car length (~2 m). Hypothesis, not tested.
+  - The gain is concentrated at 20 m and beyond (Car median abs err: 20-40 m 1.53 -> 0.57, 40+ m 1.71 -> 0.56). At 0-20 m the constant overshoots (median signed -0.65 -> +0.77) and MAE gets slightly worse (1.46 -> 1.57). The bias grows with distance, so a single constant is not ideal. Hypothesis: at close range LiDAR also hits the car's side, which changes the median; not tested.
+  - The long error tail is untouched (within 5 m only 86% -> 89%), consistent with the occlusion explanation seen earlier.
+  - This corrects towards KITTI's label convention (box center). The nearest-surface distance may be the more useful quantity for driving; state this in the README.
+  - Caveat: single run, one dev/test split, the offset was fit on 158 cars. Not yet repeated on the full val set.
+- Next: try a distance-dependent offset (one more variable, separate experiment) or leave as future work; run the final numbers on the full 1496 val frames on Kaggle for the README table.

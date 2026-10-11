@@ -68,6 +68,8 @@ def main() -> None:
     parser.add_argument("--conf", type=float, default=0.25, help="YOLO confidence threshold (Setting B)")
     parser.add_argument("--imgsz", type=int, default=640)
     parser.add_argument("--iou_thr", type=float, default=0.5)
+    parser.add_argument("--car_offset", type=float, default=0.0,
+                        help="meters added to every Car estimate (near-surface -> box-center correction)")
     parser.add_argument("--out", default="results/metrics")
     parser.add_argument("--tag", help="output name; default A_oracle or B_yolo")
     args = parser.parse_args()
@@ -113,6 +115,8 @@ def main() -> None:
                 p_idx, box_iou = matches[i]
                 box = obj.box if p_idx is None else pred_boxes[p_idx]
                 est, n_pts = estimate_distance(tuple(box), uv, depth)
+                if est is not None and CLASS_NAMES[CLASS_MAP[obj.type]] == "Car":
+                    est += args.car_offset
             rows.append({
                 "frame": fid, "type": obj.type, "class": CLASS_NAMES[CLASS_MAP[obj.type]],
                 "occluded": obj.occluded, "truncated": obj.truncated,
