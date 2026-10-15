@@ -82,3 +82,18 @@
   3. Size matters less than occlusion: recall is 86.2% for boxes under 25 px and 91.4% above 60 px. About 8 percentage points of spread, versus 19 points across occlusion levels.
   - False alarms: in 4 examples shown, several look like real parked cars or pedestrians that carry no label (hypothesis: part of the "false alarms" are unlabeled real objects, so precision is understated; not verified over all 159).
 - Next: full-val numbers on Kaggle; decide on follow-ups (distance-dependent offset, lower-confidence threshold study).
+
+## 2026-10-15 — Baseline detection score + full-val Setting B (all 1496 val frames)
+- Change vs. baseline: none for detection; Setting B now run on the full val split, with and without the +1.42 m Car offset (the offset was fitted on 49 dev frames, not on val).
+- Settings: YOLO11n baseline, imgsz=640, epochs=50, batch=32, seed=42, Kaggle T4, training time 4514 s (1.25 h, from results.csv). Distance eval: conf 0.25, IoU>=0.5, median depth, min 5 points. Tables: results/metrics/detection_val_full.md, distance_eval_B_fullval_{baseline,offset142}.md
+- Result, detection (val, `yolo detect val`): all mAP50=0.850, mAP50-95=0.577 (P 0.866, R 0.767). Car 0.958 / 0.764, Pedestrian 0.771 / 0.434, Cyclist 0.819 / 0.533 (mAP50 / mAP50-95). Smoke run (3 epochs) was 0.607 / 0.350.
+- Result, distance (Setting B, all classes): missed 10.26%, no-estimate 0.29%, MAE 2.34 m, median abs err 1.34 m, mean signed -1.45 m.
+  - Car: MAE 2.50 -> 1.99 m, median abs err 1.40 -> 0.69 m, median signed -1.27 -> +0.15 m with the offset. All classes: MAE 2.34 -> 1.90 m, median abs err 1.34 -> 0.67 m.
+  - By range (Car, median abs err, before -> after): 0-20 m 0.93 -> 0.89, 20-40 m 1.52 -> 0.59, 40+ m 1.74 -> 0.53. Car MAE at 0-20 m got slightly worse: 1.52 -> 1.64 m (median signed -0.64 -> +0.78, overshoot).
+- Observation:
+  - The Phase 6 result replicates on the full val set (200-frame run: Car median abs err 1.44 -> 0.67; full val: 1.40 -> 0.69). The offset helps from 20 m outwards and slightly overshoots at close range; a distance-dependent offset is still the obvious next experiment.
+  - Missed objects grow with distance, strongly for pedestrians: 18.3% (0-20 m), 50.0% (20-40 m), 64.7% (40+ m); Cars 3.2% -> 5.9% -> 15.0%; Cyclists 14.8% -> 19.6% -> 53.1%. This refines the 200-frame note that size mattered less than occlusion: pooled over classes it did, but for small objects (pedestrians, cyclists) distance/size matters a lot. Pedestrian mAP50-95 (0.434) is the weakest class score.
+  - Setting B's error numbers are lower than Setting A's (MAE 2.34 vs 2.81 on the same val set) only because B leaves out the ~10% hardest objects it missed (see the 200-frame comparison); not a like-for-like comparison.
+  - Cyclists stay biased long (+2.04 m mean signed); the offset is applied to Cars only. Cause (background points inside the thin box) still untested.
+  - Predictions made before the run held: ~10% missed (10.3% observed, pedestrians worst) and typical car error roughly halved (1.40 -> 0.69).
+- Next: code walkthrough, then demo GIF and README. Optional follow-ups: distance-dependent offset; confidence threshold study.
