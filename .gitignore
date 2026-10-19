@@ -225,3 +225,6 @@ runs/
 *.pt
 *.bin
 .DS_Store
+
+# personal learning notes (not published)
+notes/
